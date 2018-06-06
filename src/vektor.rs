@@ -1,7 +1,7 @@
 extern crate rand;
 
-use rand::Rng;
-use rand::thread_rng;
+use self::rand::Rng;
+use self::rand::thread_rng;
 
 use matrix::Matrix;
 

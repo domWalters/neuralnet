@@ -18,4 +18,14 @@ impl TData {
         result
     }
 
+    pub fn new_from_funct(n: usize, depth: usize, lb: f64, ub: f64, f: Box<Fn(&f64) -> f64>) -> Vec<(Vektor, Vektor)> {
+        let mut result = Vec::new();
+        for _ in 0..n {
+            let mut x = Vektor::new_random_f64(depth, lb, ub);
+            let mut y = x.map(&*f);
+            result.push((x, y));
+        }
+        result
+    }
+
 }
