@@ -84,35 +84,26 @@ impl NeuralNetwork {
         (dc_dw, dc_db)
     }
 
-    pub fn sgd(&mut self,
+    pub fn gd(&mut self,
            training_data: &Vec<(Vektor, Vektor)>,
            batch_size: usize,
            epsilon: f64,
            epochs: u64) {
-        let n = training_data.len();
-        let num_batches = n / batch_size;
-        //let alpha = 0.5; // 0.9, 0.99
-        let aggregate_square_distance = |x: &Vektor, y: &Vektor| x.sub(y).map(|x| x * x).sum() / (x.len() as f64);
+        let num_batches = training_data.len() / batch_size;
         for t in 0..epochs {
-            println!("Starting epoch {}", t);
-            let mut permutation: Vec<usize> = (0..n).collect();
+            // println!("Starting epoch {}", t);
+            let mut permutation: Vec<usize> = (0..training_data.len()).collect();
             thread_rng().shuffle(&mut permutation);
             for k in 0..num_batches {
-                //println!("Starting batch {}", k);
                 let mut del_w = Vec::new();
-                //let mut w_vel = Vec::new();
                 let mut del_b = Vec::new();
-                //let mut b_vel = Vec::new();
                 for l in 0..self.a.len() {
                     if l > 0 {
                         del_w.push(Matrix::new(self.w[l].m.len(), self.w[l - 1].m.len()));
-                        //w_vel.push(Matrix::new(self.w[l].m.len(), self.w[l - 1].m.len()));
                     } else {
                         del_w.push(Matrix::new(self.w[l].m.len(), self.w[l].m.len()));
-                        //w_vel.push(Matrix::new(self.w[l].m.len(), self.w[l].m.len()));
                     }
                     del_b.push(Vektor::new(self.a[l].len()));
-                    //b_vel.push(Vektor::new(self.a[l].len()));
                 }
                 let mut batch_loss = 0.0;
                 for i in 0..batch_size {
@@ -127,23 +118,82 @@ impl NeuralNetwork {
                         del_w[l] = del_w[l].add(&dc_dw[l]);
                         del_b[l] = del_b[l].add(&dc_db[l]);
                     }
-                    batch_loss += aggregate_square_distance(&self.a[self.a.len() - 1], &y);
+                    batch_loss += NeuralNetwork::aggregate_square_distance(&self.a[self.a.len() - 1], &y);
                 }
-                if k == num_batches - 1 {
-                    println!("Average Batch Loss Per Element = {}", batch_loss / (batch_size as f64));
-                }
-                for l in 1..self.a.len() {    // Grad Descent (Pleb Version)
+                // if k == num_batches - 1 {
+                //     println!("Average Batch Loss Per Element = {}", batch_loss / (batch_size as f64));
+                // }
+                for l in 1..self.a.len() {
                     self.w[l] = self.w[l].add(&del_w[l].scalar_mult(-(epsilon / (batch_size as f64))));
                     self.b[l] = self.b[l].add(&del_b[l].scalar_mult(-(epsilon / (batch_size as f64))));
                 }
-                // for l in 1..self.a.len() {    // Grad Descent (With Momentum)
-                //     w_vel[l] = w_vel[l].scalar_mult(alpha).add(&del_w[l].scalar_mult(-(epsilon / (batch_size as f64))));
-                //     self.w[l] = self.w[l].add(&w_vel[l]);
-                //     b_vel[l] = b_vel[l].scalar_mult(alpha).add(&del_b[l].scalar_mult(-(epsilon / (batch_size as f64))));
-                //     self.b[l] = self.b[l].add(&b_vel[l]);
-                // }
+                if batch_loss / (batch_size as f64) < 0.01 {
+                    return;
+                }
             }
         }
+    }
+
+    pub fn gd_w_m(&mut self,
+           training_data: &Vec<(Vektor, Vektor)>,
+           batch_size: usize,
+           epsilon: f64,
+           epochs: u64) {
+        let num_batches = training_data.len() / batch_size;
+        let alpha = 0.5; // 0.9, 0.99
+        for t in 0..epochs {
+            // println!("Starting epoch {}", t);
+            let mut permutation: Vec<usize> = (0..training_data.len()).collect();
+            thread_rng().shuffle(&mut permutation);
+            for k in 0..num_batches {
+                let mut del_w = Vec::new();
+                let mut w_vel = Vec::new();
+                let mut del_b = Vec::new();
+                let mut b_vel = Vec::new();
+                for l in 0..self.a.len() {
+                    if l > 0 {
+                        del_w.push(Matrix::new(self.w[l].m.len(), self.w[l - 1].m.len()));
+                        w_vel.push(Matrix::new(self.w[l].m.len(), self.w[l - 1].m.len()));
+                    } else {
+                        del_w.push(Matrix::new(self.w[l].m.len(), self.w[l].m.len()));
+                        w_vel.push(Matrix::new(self.w[l].m.len(), self.w[l].m.len()));
+                    }
+                    del_b.push(Vektor::new(self.a[l].len()));
+                    b_vel.push(Vektor::new(self.a[l].len()));
+                }
+                let mut batch_loss = 0.0;
+                for i in 0..batch_size {
+                    // Select Data Point
+                    let (ref x, ref y) = training_data[permutation[k * batch_size + i]];
+                    // Forward
+                    self.feedforward(x);
+                    // Backward
+                    let (dc_dw, dc_db) = self.backpropogate(y);
+                    // Accumulate Delta
+                    for l in 1..self.a.len() {
+                        del_w[l] = del_w[l].add(&dc_dw[l]);
+                        del_b[l] = del_b[l].add(&dc_db[l]);
+                    }
+                    batch_loss += NeuralNetwork::aggregate_square_distance(&self.a[self.a.len() - 1], &y);
+                }
+                // if k == num_batches - 1 {
+                //     println!("Average Batch Loss Per Element = {}", batch_loss / (batch_size as f64));
+                // }
+                for l in 1..self.a.len() {
+                    w_vel[l] = w_vel[l].scalar_mult(alpha).add(&del_w[l].scalar_mult(-(epsilon / (batch_size as f64))));
+                    self.w[l] = self.w[l].add(&w_vel[l]);
+                    b_vel[l] = b_vel[l].scalar_mult(alpha).add(&del_b[l].scalar_mult(-(epsilon / (batch_size as f64))));
+                    self.b[l] = self.b[l].add(&b_vel[l]);
+                }
+                if batch_loss / (batch_size as f64) < 0.01 {
+                    return;
+                }
+            }
+        }
+    }
+
+    fn aggregate_square_distance(x: &Vektor, y: &Vektor) -> f64 {
+        x.sub(y).map(|x| x * x).sum() / (x.len() as f64)
     }
 
     pub fn relu() -> Box<Fn(&f64) -> f64> {
