@@ -7,12 +7,12 @@ use matrix::Matrix;
 use vektor::Vektor;
 
 pub struct NeuralNetwork {
-    pub w: Vec<Matrix>, // layer l, node j, weight from (l-1)(k) to (l)(j)
-    pub b: Vec<Vektor>, // layer l, node j
-    pub a: Vec<Vektor>, // layer l, node j
-    pub z: Vec<Vektor>, // layer l, node j
-    pub act_funct: Box<Fn(&f64) -> f64>,
-    pub act_funct_diff: Box<Fn(&f64) -> f64>,
+    w: Vec<Matrix>, // layer l, node j, weight from (l-1)(k) to (l)(j)
+    b: Vec<Vektor>, // layer l, node j
+    a: Vec<Vektor>, // layer l, node j
+    z: Vec<Vektor>, // layer l, node j
+    act_funct: Box<Fn(&f64) -> f64>,
+    act_funct_diff: Box<Fn(&f64) -> f64>,
 }
 
 impl NeuralNetwork {
@@ -105,7 +105,7 @@ impl NeuralNetwork {
         let n = training_data.len();
         let num_batches = n / batch_size;
         //let alpha = 0.5; // 0.9, 0.99
-        let aggregate_square_distance = |x: &Vektor, y: &Vektor| x.sub(y).map(|x| x*x).sum() / (x.len() as f64);
+        let aggregate_square_distance = |x: &Vektor, y: &Vektor| x.sub(y).map(|x| x * x).sum() / (x.len() as f64);
         for t in 0..epochs {
             println!("Starting epoch {}", t);
             let mut permutation: Vec<usize> = (0..n).collect();
