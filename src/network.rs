@@ -31,27 +31,14 @@ impl NeuralNetwork {
     pub fn new_random(pattern: &[usize], act_funct: Box<Fn(&f64) -> f64>, act_funct_diff: Box<Fn(&f64) -> f64>) -> NeuralNetwork {
         let mut nn = NeuralNetwork::new_blank(act_funct, act_funct_diff);
         for l in 0..pattern.len() {
-            let mut weights;
             if l == 0 {
-                weights = Matrix::new(pattern[l], pattern[l]);
+                nn.w.push(Matrix::new_random_f64(pattern[l], pattern[l], 0.0, 1.0));        // This won't ever be accessed. The zero-th layer doesn't have ws, but we need it for indexing
             } else {
-                weights = Matrix::new(pattern[l], pattern[l - 1]);
+                nn.w.push(Matrix::new_random_f64(pattern[l], pattern[l - 1], 0.0, 1.0));
             }
-            let mut biases = Vektor::new(pattern[l]);
-            for j in 0..pattern[l] {
-                if l > 0 {
-                    let mut weights_into_node: Vec<f64> = Vec::new();
-                    for _ in 0..pattern[l-1] {
-                        weights_into_node.push(thread_rng().gen_range(0.0, 1.0));
-                    }
-                    weights.m[j] = Vektor::new_from_vec(weights_into_node);         // strictly the first layer doesn't have one, but we need it for indexing
-                }
-                biases.v[j] = thread_rng().gen_range(0.0, 1.0);                     // strictly the first layer doesn't have one, but we need it for indexing
-            }
-            nn.w.push(weights);
-            nn.b.push(biases);
-            nn.a.push(Vektor::new(pattern[l]));
-            nn.z.push(Vektor::new(pattern[l]));
+            nn.b.push(Vektor::new_random_f64(pattern[l], 0.0, 1.0));                        // strictly the first layer doesn't have one, but we need it for indexing
+            nn.a.push(Vektor::new(pattern[l]));                                             // initialised to all zeroes
+            nn.z.push(Vektor::new(pattern[l]));                                             // initialised to all zeroes
         }
         nn
     }

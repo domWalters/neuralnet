@@ -17,6 +17,16 @@ impl Matrix {
         result
     }
 
+    pub fn new_random_f64(n: usize, m: usize, lb: f64, ub: f64) -> Matrix {
+        let mut result = Matrix {
+            m: Vec::new(),
+        };
+        for _ in 0..n {
+            result.m.push(Vektor::new_random_f64(m, lb, ub));
+        }
+        result
+    }
+
     pub fn add(&mut self, other: &Matrix) -> Matrix {
         let mut result = Matrix {
             m: Vec::new(),
