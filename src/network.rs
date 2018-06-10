@@ -3,6 +3,11 @@ extern crate rand;
 use self::rand::Rng;
 use self::rand::thread_rng;
 
+use std::error::Error;
+use std::io::prelude::*;
+use std::fs::File;
+use std::path::{Path, Display};
+
 use matrix::Matrix;
 use vektor::Vektor;
 
@@ -201,4 +206,47 @@ impl NeuralNetwork {
         x.sub(y).map(|x| x * x).sum() / (x.len() as f64)
     }
 
+    pub fn save_all(&self) {
+        // Get file to save to
+        let path = Path::new("test.txt");
+        let display = path.display();
+        let mut file = match File::create(&path) {
+            Err(why) => panic!("Couldn't create file {}: {}", display, why.description()),
+            Ok(file) => file,
+        };
+        // Save self.w  l layers, j matricies with k rows
+        for l in 0..self.w.len() {
+            NeuralNetwork::save_entity(&mut file, &display, &self.w[l].save_format(), &NeuralNetwork::entity_preamble("w", l));
+        }
+        // Save self.b  l layers, j entries
+        for l in 0..self.b.len() {
+            let mut save_data = self.b[l].save_format();
+            save_data.push_str("\n");
+            NeuralNetwork::save_entity(&mut file, &display, &save_data, &NeuralNetwork::entity_preamble("b", l));
+        }
+    }
+
+    fn save_entity(file: &mut File, file_name: &Display, save_data: &str, name: &str) {
+        match file.write_all(name.as_bytes()) {
+            Err(why) => {
+                panic!("Couldn't write to {}: {}", file_name, why.description())
+            },
+            Ok(_) => println!("Successfully wrote to {}", file_name),
+        }
+        match file.write_all(save_data.as_bytes()) {
+            Err(why) => {
+                panic!("Couldn't write to {}: {}", file_name, why.description())
+            },
+            Ok(_) => println!("Successfully wrote to {}", file_name),
+        }
+    }
+
+    fn entity_preamble(name: &str, index: usize) -> String {
+        let mut preamble = String::new();
+        preamble.push_str(name);
+        preamble.push_str("[");
+        preamble.push_str(&index.to_string());
+        preamble.push_str("]\n");
+        preamble
+    }
 }

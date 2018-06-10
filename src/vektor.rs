@@ -114,4 +114,13 @@ impl Vektor {
         result
     }
 
+    pub fn save_format(&self) -> String {
+        let mut result = String::new();
+        result.push_str(&self.v[0].to_string());
+        for i in 1..self.v.len() {
+            result.push_str("\t");
+            result.push_str(&self.v[i].to_string());
+        }
+        result
+    }
 }

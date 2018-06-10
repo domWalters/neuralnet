@@ -95,4 +95,15 @@ impl Matrix {
         matrix
     }
 
+    pub fn save_format(&self) -> String {
+        let mut result = String::new();
+        result.push_str(&self.m[0].save_format());
+        result.push_str("\n");
+        for i in 1..self.m.len() {
+            result.push_str(&self.m[i].save_format());
+            result.push_str("\n");
+        }
+        result
+    }
+
 }

@@ -26,6 +26,7 @@ fn main() {
         let mut nn_2 = NeuralNetwork::new_random(&pattern, closures::leaky_relu(), closures::leaky_relu_diff());
         let now = Instant::now();
         nn_1.gd(&training_data, batch_size, epsilon, epochs);
+        nn_1.save_all();
         total_1 = total_1.checked_add(now.elapsed()).expect("Overflow");
         println!("i={} nn_1 completed.", i);
         let now = Instant::now();
