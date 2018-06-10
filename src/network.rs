@@ -145,21 +145,26 @@ impl NeuralNetwork {
             // println!("Starting epoch {}", t);
             let mut permutation: Vec<usize> = (0..training_data.len()).collect();
             thread_rng().shuffle(&mut permutation);
+            let mut w_vel = Vec::new();
+            let mut b_vel = Vec::new();
+            for l in 0..self.a.len() {
+                if l > 0 {
+                    w_vel.push(Matrix::new(self.w[l].m.len(), self.w[l - 1].m.len()));
+                } else {
+                    w_vel.push(Matrix::new(self.w[l].m.len(), self.w[l].m.len()));
+                }
+                b_vel.push(Vektor::new(self.a[l].len()));
+            }
             for k in 0..num_batches {
                 let mut del_w = Vec::new();
-                let mut w_vel = Vec::new();
                 let mut del_b = Vec::new();
-                let mut b_vel = Vec::new();
                 for l in 0..self.a.len() {
                     if l > 0 {
                         del_w.push(Matrix::new(self.w[l].m.len(), self.w[l - 1].m.len()));
-                        w_vel.push(Matrix::new(self.w[l].m.len(), self.w[l - 1].m.len()));
                     } else {
                         del_w.push(Matrix::new(self.w[l].m.len(), self.w[l].m.len()));
-                        w_vel.push(Matrix::new(self.w[l].m.len(), self.w[l].m.len()));
                     }
                     del_b.push(Vektor::new(self.a[l].len()));
-                    b_vel.push(Vektor::new(self.a[l].len()));
                 }
                 let mut batch_loss = 0.0;
                 for i in 0..batch_size {
@@ -176,9 +181,9 @@ impl NeuralNetwork {
                     }
                     batch_loss += NeuralNetwork::aggregate_square_distance(&self.a[self.a.len() - 1], &y);
                 }
-                // if k == num_batches - 1 {
-                //     println!("Average Batch Loss Per Element = {}", batch_loss / (batch_size as f64));
-                // }
+                if k == num_batches - 1 {
+                    println!("Average Batch Loss Per Element = {}", batch_loss / (batch_size as f64));
+                }
                 for l in 1..self.a.len() {
                     w_vel[l] = w_vel[l].scalar_mult(alpha).add(&del_w[l].scalar_mult(-(epsilon / (batch_size as f64))));
                     self.w[l] = self.w[l].add(&w_vel[l]);
