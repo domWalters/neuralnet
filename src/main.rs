@@ -4,6 +4,7 @@ use network::NeuralNetwork;
 use vektor::Vektor;
 use tdata::TData;
 
+pub mod closures;
 pub mod network;
 pub mod vektor;
 pub mod matrix;
@@ -21,8 +22,8 @@ fn main() {
     let mut total_1 = Duration::new(0, 0);
     let mut total_2 = Duration::new(0, 0);
     for i in 0..count {
-        let mut nn_1 = NeuralNetwork::new_random(&pattern, NeuralNetwork::leaky_relu(), NeuralNetwork::leaky_relu_diff());
-        let mut nn_2 = NeuralNetwork::new_random(&pattern, NeuralNetwork::leaky_relu(), NeuralNetwork::leaky_relu_diff());
+        let mut nn_1 = NeuralNetwork::new_random(&pattern, closures::leaky_relu(), closures::leaky_relu_diff());
+        let mut nn_2 = NeuralNetwork::new_random(&pattern, closures::leaky_relu(), closures::leaky_relu_diff());
         let now = Instant::now();
         nn_1.gd(&training_data, batch_size, epsilon, epochs);
         total_1 = total_1.checked_add(now.elapsed()).expect("Overflow");
