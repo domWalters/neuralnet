@@ -4,9 +4,11 @@ use self::rand::Rng;
 use self::rand::thread_rng;
 
 use std::error::Error;
+use std::io::BufReader;
 use std::io::prelude::*;
+use std::io;
 use std::fs::File;
-use std::path::{Path, Display};
+use std::path::Path;
 
 use matrix::Matrix;
 use vektor::Vektor;
@@ -206,47 +208,136 @@ impl NeuralNetwork {
         x.sub(y).map(|x| x * x).sum() / (x.len() as f64)
     }
 
-    pub fn save_all(&self) {
+    pub fn save_all(&self, file_name: &str) {
         // Get file to save to
-        let path = Path::new("test.txt");
+        let path = Path::new(file_name);
         let display = path.display();
         let mut file = match File::create(&path) {
             Err(why) => panic!("Couldn't create file {}: {}", display, why.description()),
             Ok(file) => file,
         };
-        // Save self.w  l layers, j matricies with k rows
+        // Save self.w
         for l in 0..self.w.len() {
-            NeuralNetwork::save_entity(&mut file, &display, &self.w[l].save_format(), &NeuralNetwork::entity_preamble("w", l));
+            match NeuralNetwork::save_entity(&mut file, &self.w[l].save_format(), &NeuralNetwork::entity_preamble("w", l, self.w[l].m.len())) {
+                Err(why) => {
+                    panic!("Couldn't write to {}: {}", file_name, why.description())
+                },
+                Ok(_) => println!("Successfully wrote to {}", file_name),
+            }
         }
-        // Save self.b  l layers, j entries
+        // Save self.b
         for l in 0..self.b.len() {
             let mut save_data = self.b[l].save_format();
             save_data.push_str("\n");
-            NeuralNetwork::save_entity(&mut file, &display, &save_data, &NeuralNetwork::entity_preamble("b", l));
+            match NeuralNetwork::save_entity(&mut file, &save_data, &NeuralNetwork::entity_preamble("b", l, 1)) {
+                Err(why) => {
+                    panic!("Couldn't write to {}: {}", file_name, why.description())
+                },
+                Ok(_) => println!("Successfully wrote to {}", file_name),
+            }
         }
     }
 
-    fn save_entity(file: &mut File, file_name: &Display, save_data: &str, name: &str) {
-        match file.write_all(name.as_bytes()) {
-            Err(why) => {
-                panic!("Couldn't write to {}: {}", file_name, why.description())
-            },
-            Ok(_) => println!("Successfully wrote to {}", file_name),
-        }
-        match file.write_all(save_data.as_bytes()) {
-            Err(why) => {
-                panic!("Couldn't write to {}: {}", file_name, why.description())
-            },
-            Ok(_) => println!("Successfully wrote to {}", file_name),
-        }
+    fn save_entity(file: &mut File, save_data: &str, name: &str) -> io::Result<()> {
+        file.write_all(name.as_bytes())?;
+        file.write_all(save_data.as_bytes())?;
+        Ok(())
     }
 
-    fn entity_preamble(name: &str, index: usize) -> String {
+    fn entity_preamble(name: &str, index: usize, size: usize) -> String {
         let mut preamble = String::new();
         preamble.push_str(name);
         preamble.push_str("[");
         preamble.push_str(&index.to_string());
-        preamble.push_str("]\n");
+        preamble.push_str("] ");
+        preamble.push_str(&size.to_string());
+        preamble.push_str("\n");
         preamble
     }
+
+    pub fn load(file_name: &str, act_funct: Box<Fn(&f64) -> f64>, act_funct_diff: Box<Fn(&f64) -> f64>) -> NeuralNetwork {
+        // Get a blank network
+        let mut nn = NeuralNetwork::new_blank(act_funct, act_funct_diff);
+        // Get file to read from
+        let path = Path::new(file_name);
+        let display = path.display();
+        let file = match File::open(&path) {
+            Err(why) => panic!("Couldn't open file {}: {}", display, why.description()),
+            Ok(file) => file,
+        };
+        // Setup data stores
+        let mut buf_reader = BufReader::new(file);
+        let mut entity = String::new();
+        let mut preamble = String::new();
+        // Read initial preamble
+        buf_reader.read_line(&mut preamble).expect("Couldn't read line (preamble ended early).");
+        // Read W
+        while preamble.contains("w") {
+            let l = preamble[5..preamble.len() - 1].parse::<usize>().expect("Preamble is in the wrong format.");
+            for _ in 0..l {
+                buf_reader.read_line(&mut entity).expect("Couldn't read line.");
+            }
+            nn.w.push(Matrix::load(&entity));
+            preamble.clear();
+            entity.clear();
+            buf_reader.read_line(&mut preamble).expect("Couldn't read line (preamble ended early).");
+        }
+        let mut b_count = 1;
+        // Read B
+        while preamble.contains("b") {
+            buf_reader.read_line(&mut entity).expect("Couldn't read line.");
+            nn.b.push(Vektor::load(&entity));
+            nn.a.push(Vektor::new(nn.b[b_count - 1].len())); // initialised to all zeroes
+            nn.z.push(Vektor::new(nn.b[b_count - 1].len())); // initialised to all zeroes
+            preamble.clear();
+            entity.clear();
+            if b_count < nn.w.len() {
+                buf_reader.read_line(&mut preamble).expect("Couldn't read line (preamble ended early).");
+                b_count += 1;
+            }
+        }
+        nn
+    }
+
+    pub fn dimension_printer(&self) {
+        if self.w.len() == self.b.len() {
+            println!("W and B have same layer count.");
+            if self.w.len() == self.a.len() {
+                println!("W and A have same layer count.");
+                if self.w.len() == self.z.len() {
+                    println!("W and Z have same layer count.");
+                }
+            }
+        }
+
+        // B dimensions
+        let mut dim = Vec::new();
+        for i in 0..self.b.len() {
+            dim.push(self.b[i].len());
+        }
+        println!("B dimensions: {:?}", dim);
+
+        // A dimensions
+        let mut dim = Vec::new();
+        for i in 0..self.a.len() {
+            dim.push(self.a[i].len());
+        }
+        println!("A dimensions: {:?}", dim);
+
+        // Z dimensions
+        let mut dim = Vec::new();
+        for i in 0..self.z.len() {
+            dim.push(self.z[i].len());
+        }
+        println!("Z dimensions: {:?}", dim);
+
+        // W dimensions
+        let mut dim = Vec::new();
+        for i in 0..self.w.len() {
+            dim.push(self.w[i].dimension_check());
+        }
+        println!("W dimensions: {:?}", dim);
+
+    }
+
 }

@@ -21,14 +21,17 @@ fn main() {
     let count = 10;
     let mut total_1 = Duration::new(0, 0);
     let mut total_2 = Duration::new(0, 0);
+    
     for i in 0..count {
+        // Initialise
         let mut nn_1 = NeuralNetwork::new_random(&pattern, closures::leaky_relu(), closures::leaky_relu_diff());
         let mut nn_2 = NeuralNetwork::new_random(&pattern, closures::leaky_relu(), closures::leaky_relu_diff());
+        // A run of GD
         let now = Instant::now();
         nn_1.gd(&training_data, batch_size, epsilon, epochs);
-        nn_1.save_all();
         total_1 = total_1.checked_add(now.elapsed()).expect("Overflow");
         println!("i={} nn_1 completed.", i);
+        // A run of GD_W_M
         let now = Instant::now();
         nn_2.gd_w_m(&training_data, batch_size, epsilon, epochs);
         total_2 = total_2.checked_add(now.elapsed()).expect("Overflow");
@@ -36,8 +39,6 @@ fn main() {
     }
     println!("GD: {:?}", total_1.checked_div(count));
     println!("GD W M: {:?}", total_2.checked_div(count));
-
-    //test(&mut nn_1);
 }
 
 fn test(nn: &mut NeuralNetwork) {
