@@ -98,4 +98,26 @@ impl Matrix {
         result
     }
 
+    pub fn load(load_data: &str) -> Matrix {
+        let mut result = Matrix {
+            m: Vec::new(),
+        };
+        let lines = load_data.split("\n");
+        for l in lines {
+            if l != "" {
+                result.m.push(Vektor::load(l));
+            }
+        }
+        result
+    }
+
+    pub fn dimension_check(&self) -> (usize, usize) {
+        for i in 1..self.m.len() {
+            if self.m[0].len() != self.m[i].len() {
+                panic!("Dimension error in Matrix");
+            }
+        }
+        (self.m.len(), self.m[0].len())
+    }
+
 }

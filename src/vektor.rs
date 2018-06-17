@@ -3,6 +3,8 @@ extern crate rand;
 use self::rand::Rng;
 use self::rand::thread_rng;
 
+use std::error::Error;
+
 use matrix::Matrix;
 
 #[derive(Clone, Debug)]
@@ -121,4 +123,19 @@ impl Vektor {
         }
         result
     }
+
+    pub fn load(load_data: &str) -> Vektor {
+        let mut result = Vektor {
+            v: Vec::new(),
+        };
+        let elements = load_data.split("\t");
+        for e in elements {
+            match e.trim().parse::<f64>() {
+                Err(why) => panic!("Couldn't read from {}: {}", load_data, why.description()),
+                Ok(num) => result.v.push(num),
+            }
+        }
+        result
+    }
+
 }
