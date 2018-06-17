@@ -17,7 +17,17 @@ impl Matrix {
         result
     }
 
-    pub fn add(&mut self, other: &Matrix) -> Matrix {
+    pub fn new_random_f64(n: usize, m: usize, lb: f64, ub: f64) -> Matrix {
+        let mut result = Matrix {
+            m: Vec::new(),
+        };
+        for _ in 0..n {
+            result.m.push(Vektor::new_random_f64(m, lb, ub));
+        }
+        result
+    }
+
+    pub fn add(&self, other: &Matrix) -> Matrix {
         let mut result = Matrix {
             m: Vec::new(),
         };
@@ -27,10 +37,18 @@ impl Matrix {
         result
     }
 
-    pub fn scalar_mult(&mut self, scalar: f64) -> Matrix {
-        Matrix {
-            m: self.m.iter().map(|x| x.scalar_mult(scalar)).collect(),
+    pub fn scalar_mult(&self, scalar: f64) -> Matrix {
+        self.map(|x| x.scalar_mult(scalar))
+    }
+
+    pub fn hadamaud_prod(&self, other: &Matrix) -> Matrix {
+        let mut matrix = Matrix {
+            m: Vec::new(),
+        };
+        for i in 0..other.m.len() {
+            matrix.m.push(self.m[i].hadamaud_prod(&other.m[i]));
         }
+        matrix
     }
 
     pub fn vec_mult(&self, other: &Vektor) -> Vektor {
@@ -57,6 +75,49 @@ impl Matrix {
             mat.m.push(vek);
         }
         mat
+    }
+
+    pub fn map<F>(&self, f: F) -> Matrix where F: Fn(&Vektor) -> Vektor {
+        let mut matrix = Matrix {
+            m: Vec::new(),
+        };
+        for i in 0..self.m.len() {
+            matrix.m.push(f(&self.m[i]));
+        }
+        matrix
+    }
+
+    pub fn save_format(&self) -> String {
+        let mut result = String::new();
+        result.push_str(&self.m[0].save_format());
+        result.push_str("\n");
+        for i in 1..self.m.len() {
+            result.push_str(&self.m[i].save_format());
+            result.push_str("\n");
+        }
+        result
+    }
+
+    pub fn load(load_data: &str) -> Matrix {
+        let mut result = Matrix {
+            m: Vec::new(),
+        };
+        let lines = load_data.split("\n");
+        for l in lines {
+            if l != "" {
+                result.m.push(Vektor::load(l));
+            }
+        }
+        result
+    }
+
+    pub fn dimension_check(&self) -> (usize, usize) {
+        for i in 1..self.m.len() {
+            if self.m[0].len() != self.m[i].len() {
+                panic!("Dimension error in Matrix");
+            }
+        }
+        (self.m.len(), self.m[0].len())
     }
 
 }

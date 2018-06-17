@@ -3,6 +3,8 @@ extern crate rand;
 use self::rand::Rng;
 use self::rand::thread_rng;
 
+use std::error::Error;
+
 use matrix::Matrix;
 
 #[derive(Clone, Debug)]
@@ -89,9 +91,7 @@ impl Vektor {
     }
 
     pub fn scalar_mult(&self, scalar: f64) -> Vektor {
-        Vektor {
-            v: self.v.iter().map(|x| scalar * x).collect(),
-        }
+        self.map(|x| scalar * x)
     }
 
     pub fn sum(&self) -> f64 {
@@ -110,6 +110,30 @@ impl Vektor {
         };
         for j in 0..self.v.len() {
             result.m.push(other.scalar_mult(self.v[j]));
+        }
+        result
+    }
+
+    pub fn save_format(&self) -> String {
+        let mut result = String::new();
+        result.push_str(&self.v[0].to_string());
+        for i in 1..self.v.len() {
+            result.push_str("\t");
+            result.push_str(&self.v[i].to_string());
+        }
+        result
+    }
+
+    pub fn load(load_data: &str) -> Vektor {
+        let mut result = Vektor {
+            v: Vec::new(),
+        };
+        let elements = load_data.split("\t");
+        for e in elements {
+            match e.trim().parse::<f64>() {
+                Err(why) => panic!("Couldn't read from {}: {}", load_data, why.description()),
+                Ok(num) => result.v.push(num),
+            }
         }
         result
     }
