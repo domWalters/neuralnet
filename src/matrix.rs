@@ -38,9 +38,7 @@ impl Matrix {
     }
 
     pub fn scalar_mult(&self, scalar: f64) -> Matrix {
-        Matrix {
-            m: self.m.iter().map(|x| x.scalar_mult(scalar)).collect(),
-        }
+        self.map(|x| x.scalar_mult(scalar))
     }
 
     pub fn hadamaud_prod(&self, other: &Matrix) -> Matrix {
@@ -79,18 +77,12 @@ impl Matrix {
         mat
     }
 
-    pub fn map<F>(&self, f: F) -> Matrix where F: Fn(f64) -> f64 {
+    pub fn map<F>(&self, f: F) -> Matrix where F: Fn(&Vektor) -> Vektor {
         let mut matrix = Matrix {
             m: Vec::new(),
         };
         for i in 0..self.m.len() {
-            let mut vek = Vektor {
-                v: Vec::new(),
-            };
-            for j in 0..self.m[i].len() {
-                vek.v.push(f(self.m[i].v[j]));
-            }
-            matrix.m.push(vek);
+            matrix.m.push(f(&self.m[i]));
         }
         matrix
     }

@@ -89,9 +89,7 @@ impl Vektor {
     }
 
     pub fn scalar_mult(&self, scalar: f64) -> Vektor {
-        Vektor {
-            v: self.v.iter().map(|x| scalar * x).collect(),
-        }
+        self.map(|x| scalar * x)
     }
 
     pub fn sum(&self) -> f64 {
