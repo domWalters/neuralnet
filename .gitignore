@@ -11,3 +11,6 @@ Cargo.lock
 
 # Intellij
 /.idea/
+
+# Test Save Data
+/test/
